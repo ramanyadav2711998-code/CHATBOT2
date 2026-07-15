@@ -36,7 +36,7 @@ if "mood" not in st.session_state:
 moods = ["friendly", "professional", "sarcastic", "funny", "romantic", "sad", "angry", "confused", "excited", "bored"]
 
 st.title("🤖 ROBO Chat")
-st.write("✨ A polished chat experience with a friendly and modern feel.")
+st.write("✨ created by Raman Yadav.")
 
 with st.sidebar:
     st.header("🎭 Conversation Style")
