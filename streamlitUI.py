@@ -3,7 +3,11 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_mistralai import ChatMistralAI
+
+try:
+    from langchain_mistralai import ChatMistralAI
+except Exception:  # pragma: no cover - graceful fallback for deployment issues
+    ChatMistralAI = None
 
 load_dotenv()
 
@@ -59,11 +63,32 @@ if prompt:
     with st.chat_message("user", avatar="🧑"):
         st.markdown(f"🧑 {prompt}")
 
-    if not os.getenv("MISTRAL_API_KEY"):
-        reply = "Please add your MISTRAL_API_KEY in the environment to enable live AI responses."
+    def get_api_key():
+        api_key = os.getenv("MISTRAL_API_KEY")
+        if api_key:
+            return api_key
+        try:
+            secrets = st.secrets
+            if hasattr(secrets, "get"):
+                value = secrets.get("MISTRAL_API_KEY")
+                if value:
+                    return str(value)
+        except Exception:
+            pass
+        return ""
+
+    api_key = get_api_key()
+
+    if not api_key:
+        reply = (
+            "Live AI is currently unavailable because MISTRAL_API_KEY is not set. "
+            "Add it in your hosting platform environment variables or in Streamlit Cloud Secrets as 'MISTRAL_API_KEY'."
+        )
+    elif ChatMistralAI is None:
+        reply = "The chat model package is not available in this deployment environment."
     else:
         try:
-            model = ChatMistralAI(model="mistral-large-latest", temperature=0.7, max_retries=2)
+            model = ChatMistralAI(api_key=api_key, model="mistral-large-latest", temperature=0.7, max_retries=2)
             system_prompt = f"You are a helpful assistant. Your conversation mood is {st.session_state.mood}."
             response = model.invoke([SystemMessage(content=system_prompt), HumanMessage(content=prompt)])
             reply = getattr(response, "content", str(response))
